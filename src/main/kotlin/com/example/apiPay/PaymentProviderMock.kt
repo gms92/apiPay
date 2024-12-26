@@ -23,7 +23,7 @@ class PaymentProviderMock {
         wireMockServer.stubFor(
             post(urlEqualTo("/charges"))
                 .withRequestBody(matchingJsonPath("$.description", containing(
-                    "Every provider will fail to create payment")
+                    "Every provider will fail")
                 ))
                 .willReturn(
                     aResponse()
