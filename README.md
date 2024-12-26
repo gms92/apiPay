@@ -1,6 +1,6 @@
-# Payment Gateway Service
+# ApiPay
 
-ApiPay: A payment service that integrates with multiple payment providers to process credit card transactions.
+A payment service that integrates with multiple payment providers to process credit card transactions.
 
 ## Getting Started
 
@@ -117,3 +117,6 @@ To simulate a failure in both payment providers, include this text in the paymen
 ./gradlew test
 ```
 or execute tests classes at test folder: CreatePaymentApplicationTest and RefundPaymentApplicationTest
+
+
+- All providers mock scenarios are in the file: PaymentProviderMock
