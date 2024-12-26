@@ -6,13 +6,11 @@ import com.example.apiPay.application.commands.CreatePaymentCommand
 import com.example.apiPay.entities.Card
 import com.example.apiPay.enums.PaymentProvider
 import com.example.apiPay.enums.PaymentStatus
-import com.example.apiPay.infrastructure.gateway.payment.PaymentProviderGateway
 import com.example.apiPay.infrastructure.gateway.payment.responses.FirstProviderStatus
 import com.example.apiPay.infrastructure.gateway.payment.responses.SecondProviderStatus
 import com.example.apiPay.services.PaymentProviderService
 import feign.FeignException
 import org.springframework.stereotype.Service
-import java.util.*
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger{}
