@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
 import java.util.UUID
 
-data class CreatePaymentFromFirstProviderResponse(
+data class FirstProviderResponse(
     val id: UUID,
     val createdAt: String,
     val status: FirstProviderStatus,
