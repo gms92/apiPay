@@ -6,7 +6,7 @@ import java.util.UUID
 
 data class RefundPaymentRequest(
     val transactionId: UUID,
-    val amount: BigDecimal
+    val amount: BigDecimal? = null
 ) {
     fun toCommand() = RefundPaymentCommand(
         transactionId = transactionId,

@@ -6,5 +6,5 @@ import java.util.UUID
 
 data class RefundPaymentCommand(
     val transactionId: UUID,
-    val amount: BigDecimal
+    val amount: BigDecimal? = null
 ): BaseCommand

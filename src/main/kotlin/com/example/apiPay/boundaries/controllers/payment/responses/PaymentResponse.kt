@@ -7,5 +7,6 @@ data class PaymentResponse(
     private val messageResponse: String? = null
 ) {
     val transactionId = payment?.transactionId
+    val provider = payment?.provider
     val message = messageResponse
 }
