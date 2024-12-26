@@ -1,13 +1,12 @@
 package com.example.apiPay.application
 
 import com.example.apiPay.BaseApplication
+import com.example.apiPay.InMemoryPaymentStore
 import com.example.apiPay.entities.Payment
 import com.example.apiPay.application.commands.CreatePaymentCommand
 import com.example.apiPay.entities.Card
 import com.example.apiPay.enums.PaymentProvider
 import com.example.apiPay.enums.PaymentStatus
-import com.example.apiPay.infrastructure.gateway.payment.responses.FirstProviderStatus
-import com.example.apiPay.infrastructure.gateway.payment.responses.SecondProviderStatus
 import com.example.apiPay.services.PaymentProviderService
 import feign.FeignException
 import org.springframework.stereotype.Service
@@ -35,16 +34,21 @@ class CreatePaymentApplication(
                 installments = card.installments
             )
         )
-        val attempts = listOf(
-            { attemptPayment(payment, PaymentProvider.FIRST_PROVIDER, ::decidePaymentStatusByFirstProviderStatus) },
-            { attemptPayment(payment, PaymentProvider.SECOND_PROVIDER, ::decidePaymentStatusBySecondProviderStatus) }
+        val paymentAttempts = listOf(
+            { attemptPayment(payment, PaymentProvider.FIRST_PROVIDER) { PaymentStatus.fromFirstProviderStatus(it) } },
+            { attemptPayment(payment, PaymentProvider.SECOND_PROVIDER) { PaymentStatus.fromSecondProviderStatus(it) } }
         )
-        for (attempt in attempts) {
+        for (attempt in paymentAttempts) {
             when (val result = attempt()) {
-                is PaymentAttempt.Success -> return result.payment
+                is PaymentAttempt.Success -> {
+                    logger.info("Payment approved by ${result.payment.provider}")
+                    InMemoryPaymentStore.save(result.payment)
+                    return result.payment
+                }
                 is PaymentAttempt.Failure -> logger.error("Attempt failed: ${result.reason}")
             }
         }
+        logger.error("All providers attempts failed")
         return payment.apply { status = PaymentStatus.FAILED }
     }
 
@@ -60,6 +64,7 @@ class CreatePaymentApplication(
                 PaymentAttempt.Failure("$provider returned FAILED")
             } else {
                 payment.apply {
+                    this.transactionId = response.providerTransactionId
                     this.provider = provider
                     this.status = status
                 }
@@ -67,22 +72,6 @@ class CreatePaymentApplication(
             }
         } catch (ex: FeignException) {
             PaymentAttempt.Failure("${ex.message ?: "FeignException"} - $provider")
-        }
-    }
-
-    private fun decidePaymentStatusByFirstProviderStatus(status: String): PaymentStatus {
-        return when (FirstProviderStatus.valueOf(status)) {
-            FirstProviderStatus.AUTHORIZED -> PaymentStatus.APPROVED
-            FirstProviderStatus.FAILED -> PaymentStatus.FAILED
-            FirstProviderStatus.REFUNDED -> PaymentStatus.REFUNDED
-        }
-    }
-
-    private fun decidePaymentStatusBySecondProviderStatus(status: String): PaymentStatus {
-        return when (SecondProviderStatus.valueOf(status)) {
-            SecondProviderStatus.PAID -> PaymentStatus.APPROVED
-            SecondProviderStatus.FAILED -> PaymentStatus.FAILED
-            SecondProviderStatus.VOIDED -> PaymentStatus.REFUNDED
         }
     }
 }

@@ -14,6 +14,7 @@ import java.util.*
 
 data class Payment(
     val id: UUID = UUID.randomUUID(),
+    var transactionId: UUID = UUID.randomUUID(),
     val amount: BigDecimal,
     val currency: CurrencyISO4217,
     val description: String,
