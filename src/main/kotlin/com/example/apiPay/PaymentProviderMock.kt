@@ -19,6 +19,35 @@ class PaymentProviderMock {
         wireMockServer.start()
 
         //Provider 1
+
+        wireMockServer.stubFor(
+            post(urlEqualTo("/charges"))
+                .withRequestBody(matchingJsonPath("$.description", containing(
+                    "Every provider will fail to create payment")
+                ))
+                .willReturn(
+                    aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(
+                            """
+                            {
+                              "id": "55555555-ffff-4444-aaaa-000000000000",
+                              "createdAt": "2024-12-23",
+                              "status": "failed",
+                              "originalAmount": 1000,
+                              "currentAmount": 0,
+                              "currency": "USD",
+                              "description": "this will fail",
+                              "paymentMethod": "card",
+                              "cardId": "11111111-2222-3333-4444-555555555555"
+                            }
+                            """.trimIndent()
+                        )
+                )
+                .atPriority(2)
+        )
+
         wireMockServer.stubFor(
             post(urlEqualTo("/charges"))
                 .withRequestBody(matchingJsonPath("$.description", containing(
@@ -96,35 +125,34 @@ class PaymentProviderMock {
         )
 
         //Provider 2
-//        wireMockServer.stubFor(
-//            post(urlEqualTo("/transactions"))
-//                .withRequestBody(
-//                    matchingJsonPath("$.statementDescriptor", containing(
-//                        "Second provider will fail"
-//                    ))
-//                )
-//                .willReturn(
-//                    aResponse()
-//                        .withStatus(200)
-//                        .withHeader("Content-Type", "application/json")
-//                        .withBody(
-//                            """
-//                            {
-//                              "id": "55555555-ffff-4444-aaaa-000000000000",
-//                              "date": "2024-12-23",
-//                              "status": "failed",
-//                              "amount": 1000,
-//                              "originalAmount": 1000,
-//                              "currency": "USD",
-//                              "statementDescriptor": "fail transaction",
-//                              "paymentType": "card",
-//                              "cardId": "99999999-8888-7777-6666-555555555555"
-//                            }
-//                            """.trimIndent()
-//                        )
-//                )
-//                .atPriority(1)
-//        )
+        wireMockServer.stubFor(
+            post(urlEqualTo("/transactions"))
+                .withRequestBody(
+                    matchingJsonPath("$.statementDescriptor", containing(
+                        "Every provider will fail to create payment"
+                    ))
+                )
+                .willReturn(
+                    aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(
+                            """
+                            {
+                              "id": "55555555-ffff-4444-aaaa-000000000000",
+                              "date": "2024-12-23",
+                              "status": "failed",
+                              "amount": 1000,
+                              "originalAmount": 1000,
+                              "currency": "USD",
+                              "statementDescriptor": "fail transaction",
+                              "paymentType": "card",
+                              "cardId": "99999999-8888-7777-6666-555555555555"
+                            }
+                            """.trimIndent()
+                        )
+                ).atPriority(2)
+        )
 
         wireMockServer.stubFor(
             post(urlEqualTo("/transactions"))
