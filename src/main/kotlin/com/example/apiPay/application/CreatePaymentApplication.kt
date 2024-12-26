@@ -37,32 +37,38 @@ class CreatePaymentApplication(
                 installments = card.installments
             )
         )
+        val attempts = listOf(
+            { attemptPayment(payment, PaymentProvider.FIRST_PROVIDER, ::decidePaymentStatusByFirstProviderStatus) },
+            { attemptPayment(payment, PaymentProvider.SECOND_PROVIDER, ::decidePaymentStatusBySecondProviderStatus) }
+        )
+        for (attempt in attempts) {
+            when (val result = attempt()) {
+                is PaymentAttempt.Success -> return result.payment
+                is PaymentAttempt.Failure -> logger.error("Attempt failed: ${result.reason}")
+            }
+        }
+        return payment.apply { status = PaymentStatus.FAILED }
+    }
 
+    private fun attemptPayment(
+        payment: Payment,
+        provider: PaymentProvider,
+        statusMapper: (String) -> PaymentStatus
+    ): PaymentAttempt {
         return try {
-            val response = paymentProviderService.createPayment(
-                payment = payment,
-                provider = PaymentProvider.FIRST_PROVIDER
-            )
-            payment.apply {
-                status = decidePaymentStatusByFirstProviderStatus(response.status)
-                provider = PaymentProvider.FIRST_PROVIDER
-            }
-        } catch (primaryException: FeignException) {
-            logger.error("Primary provider failed: ${primaryException.message}")
-
-            try {
-                val response = paymentProviderService.createPayment(
-                    payment = payment,
-                    provider = PaymentProvider.SECOND_PROVIDER
-                )
+            val response = paymentProviderService.createPayment(payment, provider)
+            val status = statusMapper(response.status)
+            if (status == PaymentStatus.FAILED) {
+                PaymentAttempt.Failure("$provider returned FAILED")
+            } else {
                 payment.apply {
-                    status = decidePaymentStatusBySecondProviderStatus(response.status)
-                    provider = PaymentProvider.SECOND_PROVIDER
+                    this.provider = provider
+                    this.status = status
                 }
-            } catch (secondaryException: FeignException) {
-                logger.error("Secondary provider failed: ${secondaryException.message}")
-                throw Exception("Both providers failed")
+                PaymentAttempt.Success(payment)
             }
+        } catch (ex: FeignException) {
+            PaymentAttempt.Failure("${ex.message ?: "FeignException"} - $provider")
         }
     }
 
@@ -81,4 +87,9 @@ class CreatePaymentApplication(
             SecondProviderStatus.VOIDED -> PaymentStatus.REFUNDED
         }
     }
+}
+
+sealed class PaymentAttempt {
+    data class Success(val payment: Payment) : PaymentAttempt()
+    data class Failure(val reason: String) : PaymentAttempt()
 }
